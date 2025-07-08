@@ -18,13 +18,18 @@ export class Note {
      * @param {number} options.x - X position on the board
      * @param {number} options.y - Y position on the board
      * @param {string} options.color - CSS class for note color
+     * @param {string|null} [options.imageData] - 🆕 Base64 image data URL (optional)
+     * @param {string|null} [options.createdAt] - 🆕 ISO timestamp for note creation (optional)
      */
-    constructor({ id = null, content = '', x = 0, y = 0, color = null }) {
+    
+    constructor({ id = null, content = '', x = 0, y = 0, color = null, imageData = null, createdAt = null }) {
         this.id = id || this.generateId();
         this.content = content;
         this.x = x;
         this.y = y;
         this.color = color || this.getRandomColor();
+        this.imageData = imageData || null;             // 🆕 Image data URL
+        this.createdAt = createdAt || new Date().toISOString();  // 🆕 Timestamp
         this.element = null;
     }
 
@@ -52,17 +57,31 @@ export class Note {
         // Get the note template
         const template = document.getElementById('note-template');
         const noteElement = document.importNode(template.content, true).querySelector('.note');
-        
+
         // Set note properties
         noteElement.id = this.id;
         noteElement.classList.add(this.color);
         noteElement.style.left = `${this.x}px`;
         noteElement.style.top = `${this.y}px`;
-        
+
         // Set content
         const contentElement = noteElement.querySelector('.note-content');
         contentElement.textContent = this.content;
-        
+
+        // 🆕 Set image if available
+        const imageEl = noteElement.querySelector('.note-image');
+        if (this.imageData && imageEl) {
+            imageEl.src = this.imageData;
+            imageEl.style.display = 'block';
+        }
+
+        // 🆕 Set timestamp
+        const timestampEl = noteElement.querySelector('.note-timestamp');
+        if (this.createdAt && timestampEl) {
+            const dt = new Date(this.createdAt);
+            timestampEl.textContent = dt.toLocaleString();
+        }
+
         // Store reference to the element
         this.element = noteElement;
         return noteElement;
@@ -76,7 +95,7 @@ export class Note {
     updatePosition(x, y) {
         this.x = x;
         this.y = y;
-        
+
         if (this.element) {
             this.element.style.left = `${x}px`;
             this.element.style.top = `${y}px`;
@@ -89,7 +108,7 @@ export class Note {
      */
     updateContent(content) {
         this.content = content;
-        
+
         if (this.element) {
             const contentElement = this.element.querySelector('.note-content');
             contentElement.textContent = content;
@@ -106,7 +125,9 @@ export class Note {
             content: this.content,
             x: this.x,
             y: this.y,
-            color: this.color
+            color: this.color,
+            imageData: this.imageData,   // 🆕 Save image
+            createdAt: this.createdAt    // 🆕 Save timestamp
         };
     }
 
@@ -118,19 +139,19 @@ export class Note {
         try {
             // Example of fetching from a quote API
             const response = await fetch('https://api.quotable.io/random?tags=inspirational,success');
-            
+
             if (!response.ok) {
                 throw new Error('Failed to fetch quote');
             }
-            
+
             const data = await response.json();
             const quote = `"${data.content}" — ${data.author}`;
-            
+
             // Add the quote to the current content
-            const newContent = this.content 
+            const newContent = this.content
                 ? `${this.content}\n\n${quote}`
                 : quote;
-            
+
             this.updateContent(newContent);
             return quote;
         } catch (error) {

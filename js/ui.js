@@ -27,6 +27,22 @@ export function initializeUI(noteManager) {
         exportNotes(noteManager);
     });
 
+    // Sort buttons
+    const sortAscBtn = document.getElementById('sort-asc-btn');
+    const sortDescBtn = document.getElementById('sort-desc-btn');
+
+    // Sort Ascending
+    sortAscBtn.addEventListener('click', () => {
+        const sorted = noteManager.getAllNotes().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        renderSortedNotes(sorted, noteManager);
+    });
+
+    // Sort Descending
+    sortDescBtn.addEventListener('click', () => {
+        const sorted = noteManager.getAllNotes().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        renderSortedNotes(sorted, noteManager);
+    });
+
     // Setup auto-save timer
     setupAutoSave(noteManager);
 }
@@ -82,6 +98,33 @@ export function setupNoteEventListeners(noteElement, note, noteManager) {
     const contentElement = noteElement.querySelector('.note-content');
     const deleteButton = noteElement.querySelector('.delete-btn');
     const quoteButton = noteElement.querySelector('.quote-btn');
+
+    // Image-related elements
+    const imageInput = noteElement.querySelector('.image-input');
+    const imageElement = noteElement.querySelector('.note-image');
+
+    // Image file input change handler
+    imageInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            const dataUrl = reader.result;
+            note.imageData = dataUrl;
+            if (imageElement) {
+                imageElement.src = dataUrl;
+                imageElement.style.display = 'block';
+            }
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // If the note already has an image, show it
+    if (note.imageData && imageElement) {
+        imageElement.src = note.imageData;
+        imageElement.style.display = 'block';
+    }
     
     // Track whether the note is being dragged
     let isDragging = false;
@@ -224,6 +267,28 @@ export function renderAllNotes(noteManager) {
     
     // Render all notes
     noteManager.getAllNotes().forEach(note => {
+        const noteElement = note.createElement();
+        setupNoteEventListeners(noteElement, note, noteManager);
+        noteBoard.appendChild(noteElement);
+    });
+}
+
+/**
+ * Render a sorted list of notes to the board
+ * @param {Note[]} sortedNotes - Notes sorted by timestamp
+ * @param {NoteManager} noteManager - The note manager instance
+ */
+export function renderSortedNotes(sortedNotes, noteManager) {
+    const noteBoard = document.getElementById('note-board');
+
+    // Clear existing notes
+    const existingNotes = noteBoard.querySelectorAll('.note');
+    existingNotes.forEach(noteElement => {
+        noteElement.remove();
+    });
+
+    // Render sorted notes
+    sortedNotes.forEach(note => {
         const noteElement = note.createElement();
         setupNoteEventListeners(noteElement, note, noteManager);
         noteBoard.appendChild(noteElement);
