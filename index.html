@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>QuickNotes - Sticky Note Board</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles.css" />
     <script type="module" src="js/main.js" defer></script>
 </head>
 <body>
@@ -12,6 +12,9 @@
         <h1>QuickNotes</h1>
         <div class="controls">
             <button id="export-btn" title="Export notes as JSON">Export</button>
+            <!-- Sort buttons for sorting notes by timestamp -->
+            <button id="sort-asc-btn" title="Sort notes by oldest">Sort ↑</button>
+            <button id="sort-desc-btn" title="Sort notes by newest">Sort ↓</button>
             <span class="instructions">Double-click anywhere to add a note</span>
         </div>
     </header>
@@ -28,6 +31,12 @@
                 <button class="delete-btn" title="Delete note">🗑️</button>
             </div>
             <div class="note-content" contenteditable="true"></div>
+            <!-- Image upload input (hidden) -->
+            <input type="file" class="image-input" accept="image/*" style="display:none;" />
+            <!-- Image preview -->
+            <img class="note-image" style="display:none; max-width:100%; max-height:150px; margin-top:6px;" />
+            <!-- Add a button to trigger image upload -->
+            <button class="image-upload-btn" title="Upload image">📷</button>
         </div>
     </template>
 
