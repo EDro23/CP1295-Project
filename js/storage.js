@@ -3,6 +3,8 @@
  * Functions for saving and loading notes from localStorage
  */
 
+import { Note } from './notes.js';  // Import Note class to reconstruct notes on load
+
 const STORAGE_KEY = 'quicknotes_data';
 
 /**
@@ -23,7 +25,7 @@ export function saveNotes(notes) {
 
 /**
  * Load notes from localStorage
- * @returns {Array|null} Array of note objects or null if none found
+ * @returns {Array|null} Array of Note instances or null if none found
  */
 export function loadNotes() {
     try {
@@ -31,7 +33,11 @@ export function loadNotes() {
         if (!notesJson) {
             return null;
         }
-        return JSON.parse(notesJson);
+        const plainNotes = JSON.parse(notesJson);
+
+        // Convert plain objects to Note instances, preserving all properties
+        const notes = plainNotes.map(noteData => new Note(noteData));
+        return notes;
     } catch (error) {
         console.error('Failed to load notes:', error);
         return null;

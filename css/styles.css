@@ -172,3 +172,25 @@ footer {
         min-height: 160px;
     }
 }
+
+/* === Added styles for note image preview and timestamp === */
+
+/* Image inside note - keep it contained and subtle */
+.note-image {
+    display: block;
+    max-width: 100%;
+    max-height: 80px;
+    margin-top: 0.5rem;
+    border-radius: 2px;
+    object-fit: contain;
+}
+
+/* Timestamp text inside note, small and muted */
+.note-timestamp {
+    font-size: 0.7em;
+    color: #666;
+    margin-top: 0.3rem;
+    text-align: right;
+    user-select: none;
+    font-style: italic;
+}

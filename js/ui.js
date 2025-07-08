@@ -13,6 +13,8 @@ import { saveNotes, exportNotesAsJson } from './storage.js';
 export function initializeUI(noteManager) {
     const noteBoard = document.getElementById('note-board');
     const exportBtn = document.getElementById('export-btn');
+    const sortAscBtn = document.getElementById('sort-asc-btn');
+    const sortDescBtn = document.getElementById('sort-desc-btn');
 
     // Double click on board to create a new note
     noteBoard.addEventListener('dblclick', (event) => {
@@ -27,20 +29,14 @@ export function initializeUI(noteManager) {
         exportNotes(noteManager);
     });
 
-    // Sort buttons
-    const sortAscBtn = document.getElementById('sort-asc-btn');
-    const sortDescBtn = document.getElementById('sort-desc-btn');
-
-    // Sort Ascending
+    // Sort ascending button click handler
     sortAscBtn.addEventListener('click', () => {
-        const sorted = noteManager.getAllNotes().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-        renderSortedNotes(sorted, noteManager);
+        sortNotesByTimestamp(noteManager, 'asc');
     });
 
-    // Sort Descending
+    // Sort descending button click handler
     sortDescBtn.addEventListener('click', () => {
-        const sorted = noteManager.getAllNotes().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        renderSortedNotes(sorted, noteManager);
+        sortNotesByTimestamp(noteManager, 'desc');
     });
 
     // Setup auto-save timer
@@ -60,12 +56,17 @@ export function createNewNote(x, y, noteManager) {
     
     const boardX = x - boardRect.left;
     const boardY = y - boardRect.top;
-    
-    // Create the new note
+
+    // Create timestamp string for new note creation
+    const timestamp = new Date().toISOString(); // ISO format (e.g. 2025-07-09T14:37:00.000Z)
+
+    // Create the new note with empty content and no image, but with timestamp
     const note = createNote({
         content: '',
         x: boardX,
-        y: boardY
+        y: boardY,
+        timestamp,      // Add timestamp property here
+        imageDataUrl: '' // Initialize empty image data
     });
     
     // Add to manager
@@ -74,7 +75,7 @@ export function createNewNote(x, y, noteManager) {
     // Create DOM element
     const noteElement = note.createElement();
     
-    // Add event listeners to the note
+    // Add event listeners to the note, including image upload and timestamp display
     setupNoteEventListeners(noteElement, note, noteManager);
     
     // Add to board
@@ -84,6 +85,9 @@ export function createNewNote(x, y, noteManager) {
     const contentElement = noteElement.querySelector('.note-content');
     contentElement.focus();
     
+    // Render timestamp inside note
+    renderTimestamp(noteElement, timestamp);
+
     return note;
 }
 
@@ -98,38 +102,27 @@ export function setupNoteEventListeners(noteElement, note, noteManager) {
     const contentElement = noteElement.querySelector('.note-content');
     const deleteButton = noteElement.querySelector('.delete-btn');
     const quoteButton = noteElement.querySelector('.quote-btn');
-
-    // Image-related elements
+    const imageUploadBtn = noteElement.querySelector('.image-upload-btn');
     const imageInput = noteElement.querySelector('.image-input');
-    const imageElement = noteElement.querySelector('.note-image');
+    const imagePreview = noteElement.querySelector('.note-image');
 
-    // Image file input change handler
-    imageInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = () => {
-            const dataUrl = reader.result;
-            note.imageData = dataUrl;
-            if (imageElement) {
-                imageElement.src = dataUrl;
-                imageElement.style.display = 'block';
-            }
-        };
-        reader.readAsDataURL(file);
-    });
-
-    // If the note already has an image, show it
-    if (note.imageData && imageElement) {
-        imageElement.src = note.imageData;
-        imageElement.style.display = 'block';
-    }
-    
     // Track whether the note is being dragged
     let isDragging = false;
     let dragOffsetX, dragOffsetY;
+
+    // Display the note's image if it exists (for loaded notes)
+    if (note.imageDataUrl) {
+        imagePreview.src = note.imageDataUrl;
+        imagePreview.style.display = 'block';
+    } else {
+        imagePreview.style.display = 'none';
+    }
     
+    // Display timestamp if it exists
+    if (note.timestamp) {
+        renderTimestamp(noteElement, note.timestamp);
+    }
+
     // Content change handler
     contentElement.addEventListener('input', () => {
         note.updateContent(contentElement.textContent);
@@ -157,13 +150,43 @@ export function setupNoteEventListeners(noteElement, note, noteManager) {
             console.error('Failed to fetch quote:', error);
         }
     });
+
+    // Image upload button click handler
+    imageUploadBtn.addEventListener('click', () => {
+        imageInput.click(); // Trigger hidden file input click
+    });
+
+    // Handle image file selection
+    imageInput.addEventListener('change', () => {
+        const file = imageInput.files[0];
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const dataUrl = e.target.result;
+
+                // Set image preview and show it
+                imagePreview.src = dataUrl;
+                imagePreview.style.display = 'block';
+
+                // Save the image data URL in the note object
+                note.imageDataUrl = dataUrl;
+
+                // Optionally, update the note's content or save state immediately
+                // We'll rely on auto-save interval
+            };
+            reader.readAsDataURL(file);
+        }
+    });
     
     // Drag start
     noteElement.addEventListener('mousedown', (event) => {
         // Ignore if clicking on buttons or content area
         if (event.target === deleteButton || 
             event.target === quoteButton ||
-            event.target === contentElement) {
+            event.target === contentElement ||
+            event.target === imageUploadBtn ||
+            event.target === imageInput ||
+            event.target === imagePreview) {
             return;
         }
         
@@ -274,21 +297,50 @@ export function renderAllNotes(noteManager) {
 }
 
 /**
- * Render a sorted list of notes to the board
- * @param {Note[]} sortedNotes - Notes sorted by timestamp
- * @param {NoteManager} noteManager - The note manager instance
+ * Render timestamp inside the note element
+ * @param {HTMLElement} noteElement - The note DOM element
+ * @param {string} timestamp - ISO timestamp string
  */
-export function renderSortedNotes(sortedNotes, noteManager) {
-    const noteBoard = document.getElementById('note-board');
+function renderTimestamp(noteElement, timestamp) {
+    // Format timestamp for display (e.g. "2025-07-09 14:37")
+    const date = new Date(timestamp);
+    const formatted = `${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
 
-    // Clear existing notes
-    const existingNotes = noteBoard.querySelectorAll('.note');
-    existingNotes.forEach(noteElement => {
-        noteElement.remove();
+    // Find or create timestamp display element
+    let timestampEl = noteElement.querySelector('.note-timestamp');
+    if (!timestampEl) {
+        timestampEl = document.createElement('div');
+        timestampEl.className = 'note-timestamp';
+        timestampEl.style.fontSize = '0.7em';
+        timestampEl.style.color = '#666';
+        timestampEl.style.marginTop = '4px';
+        timestampEl.style.textAlign = 'right';
+        noteElement.appendChild(timestampEl);
+    }
+    timestampEl.textContent = formatted;
+}
+
+/**
+ * Sort notes by timestamp and re-render board
+ * @param {NoteManager} noteManager - The note manager instance
+ * @param {'asc'|'desc'} order - Sort order: ascending or descending
+ */
+function sortNotesByTimestamp(noteManager, order = 'asc') {
+    // Get all notes as array
+    const notes = noteManager.getAllNotes();
+
+    // Sort by timestamp property (convert to Date)
+    notes.sort((a, b) => {
+        const dateA = new Date(a.timestamp || 0).getTime();
+        const dateB = new Date(b.timestamp || 0).getTime();
+        return order === 'asc' ? dateA - dateB : dateB - dateA;
     });
 
-    // Render sorted notes
-    sortedNotes.forEach(note => {
+    // Clear and re-render notes in sorted order
+    const noteBoard = document.getElementById('note-board');
+    noteBoard.innerHTML = ''; // Clear all notes DOM
+
+    notes.forEach(note => {
         const noteElement = note.createElement();
         setupNoteEventListeners(noteElement, note, noteManager);
         noteBoard.appendChild(noteElement);
