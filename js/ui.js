@@ -344,5 +344,8 @@ function sortNotesByTimestamp(noteManager, order = 'asc') {
         const noteElement = note.createElement();
         setupNoteEventListeners(noteElement, note, noteManager);
         noteBoard.appendChild(noteElement);
+
+        // Render the timestamp for each note explicitly here
+        renderTimestamp(noteElement, note.timestamp);
     });
 }
