@@ -43,17 +43,17 @@ export function initializeUI(noteManager) {
 export function createNewNote(x, y, noteManager) {
     const noteBoard = document.getElementById('note-board');
     const boardRect = noteBoard.getBoundingClientRect();
-    
+
     const boardX = x - boardRect.left;
     const boardY = y - boardRect.top;
-    const timestamp = new Date().toISOString();
+    const createdAt = new Date().toISOString();
 
     const note = createNote({
         content: '',
         x: boardX,
         y: boardY,
-        timestamp,
-        imageDataUrl: ''
+        createdAt,
+        imageData: ''
     });
 
     noteManager.addNote(note);
@@ -64,7 +64,7 @@ export function createNewNote(x, y, noteManager) {
     const contentElement = noteElement.querySelector('.note-content');
     contentElement.focus();
 
-    renderTimestamp(noteElement, timestamp);
+    renderTimestamp(noteElement, createdAt);
     return note;
 }
 
@@ -82,15 +82,17 @@ export function setupNoteEventListeners(noteElement, note, noteManager) {
     let isDragging = false;
     let dragOffsetX, dragOffsetY;
 
-    if (note.imageDataUrl) {
-        imagePreview.src = note.imageDataUrl;
+    // Load image if available
+    if (note.imageData) {
+        imagePreview.src = note.imageData;
         imagePreview.style.display = 'block';
     } else {
         imagePreview.style.display = 'none';
     }
 
-    if (note.timestamp) {
-        renderTimestamp(noteElement, note.timestamp);
+    // Load timestamp if available
+    if (note.createdAt) {
+        renderTimestamp(noteElement, note.createdAt);
     }
 
     contentElement.addEventListener('input', () => {
@@ -125,7 +127,7 @@ export function setupNoteEventListeners(noteElement, note, noteManager) {
                 const dataUrl = e.target.result;
                 imagePreview.src = dataUrl;
                 imagePreview.style.display = 'block';
-                note.imageDataUrl = dataUrl;
+                note.imageData = dataUrl;
             };
             reader.readAsDataURL(file);
         }
@@ -243,21 +245,31 @@ function sortNotesByTimestamp(noteManager, order = 'asc') {
     const notes = noteManager.getAllNotes();
 
     notes.sort((a, b) => {
-        const dateA = new Date(a.timestamp).getTime();
-        const dateB = new Date(b.timestamp).getTime();
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
         return order === 'asc' ? dateA - dateB : dateB - dateA;
     });
 
     const noteBoard = document.getElementById('note-board');
     noteBoard.innerHTML = '';
 
+    // Vertically position sorted notes
+    let offsetY = 20;
+    const spacingY = 160;
+    const startX = 20;
+
     notes.forEach(note => {
+        note.updatePosition(startX, offsetY);
+
         const noteElement = note.createElement();
         setupNoteEventListeners(noteElement, note, noteManager);
         noteElement.style.position = 'absolute';
         noteElement.style.left = `${note.x}px`;
         noteElement.style.top = `${note.y}px`;
+
         noteBoard.appendChild(noteElement);
-        renderTimestamp(noteElement, note.timestamp);
+        renderTimestamp(noteElement, note.createdAt);
+
+        offsetY += spacingY;
     });
 }
