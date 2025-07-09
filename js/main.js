@@ -16,21 +16,24 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Load saved notes from localStorage
     const savedNotes = loadNotes();
-    
-    if (savedNotes && Array.isArray(savedNotes)) {
-        console.log(`Loaded ${savedNotes.length} notes from storage`);
-        
-        // Create Note objects from the saved data
-        savedNotes.forEach(noteData => {
-            const note = new Note(noteData);
-            noteManager.addNote(note);
-        });
-        
-        // Render the loaded notes
-        renderAllNotes(noteManager);
-    } else {
-        console.log('No saved notes found, starting with empty board');
-    }
+
+if (savedNotes && Array.isArray(savedNotes)) {
+    console.log(`Loaded ${savedNotes.length} notes from storage`);
+
+    // Ensure every note has a valid timestamp
+    savedNotes.forEach(noteData => {
+        if (!noteData.timestamp) {
+            noteData.timestamp = new Date().toISOString(); // Assign if missing
+        }
+        const note = new Note(noteData);
+        noteManager.addNote(note);
+    });
+
+    // Render the loaded notes
+    renderAllNotes(noteManager);
+} else {
+    console.log('No saved notes found, starting with empty board');
+}
     
     // Initialize UI components and event handlers
     initializeUI(noteManager);
