@@ -139,15 +139,16 @@ export class Note {
      */
     async addRandomQuote() {
         try {
-            // Example of fetching from a quote API
-            const response = await fetch('https://api.quotable.io/random?tags=inspirational,success');
+            const corsProxy = 'https://api.allorigins.win/raw?url=';
+            const quoteUrl = encodeURIComponent('https://zenquotes.io/api/random');
+            const response = await fetch(`${corsProxy}${quoteUrl}`);
 
             if (!response.ok) {
                 throw new Error('Failed to fetch quote');
             }
 
             const data = await response.json();
-            const quote = `"${data.content}" — ${data.author}`;
+            const quote = `"${data[0].q}" — ${data[0].a}`;
 
             // Add the quote to the current content
             const newContent = this.content
