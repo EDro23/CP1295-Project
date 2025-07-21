@@ -1,3 +1,4 @@
+// V1
 /**
  * ui.js - UI management and event handlers
  * Functions for handling the user interface elements and interactions

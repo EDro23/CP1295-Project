@@ -1,3 +1,4 @@
+// V1
 /**
  * main.js - Main entry point for QuickNotes application
  * Initializes the application and connects all the modules
